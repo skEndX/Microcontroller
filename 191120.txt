@@ -1,0 +1,216 @@
+//overflow interrupt 초기값 설정
+#include<avr/io.h>
+#define F_CPU 16000000UL
+#include<util/delay.h>
+#include<avr/interrupt.h>
+unsigned char TovVal=0;
+int main(){
+	unsigned char in;
+	cli();
+	DDRD=0xFF;
+	PORTD=0xFF;
+
+	TCCR0A=0x00;
+
+	TCCR0B|=(1<<CS02);
+	TCCR0B|=(1<<CS00);
+	
+	TCNT0=0xFF-0x4E;
+
+	TIMSK0|=1<<TOIE0;
+	TIFR0|=1<<TOV0;
+	
+	sei();
+	while(1){
+	}
+}
+
+void LED_BLINK(){
+	PORTD=0x00;
+	_delay_ms(300);
+	PORTD=0xFF;
+}
+
+ISR(TIMER0_OVF_vect){
+	TCNT0=0xFF-0x4E;
+	TovVal++;
+
+	if(TovVal==200){
+		LED_BLINK();
+		TovVal=0;
+	}
+	sei();
+}
+-------------------------------------------------
+//CTC mode
+#include<avr/io.h>
+#define F_CPU 16000000UL
+#include<util/delay.h>
+#include<avr/interrupt.h>
+unsigned char TovVal=0;
+
+int main(){
+	unsigned char in;
+	cli();
+	DDRD=0xFF;
+	PORTD=0x00;
+
+	TCCR0A=0x02;
+
+	TCCR0B|=(1<<CS02);
+	TCCR0B|=(1<<CS00);
+	
+	OCR0A=0x4E;
+
+	TIMSK0|=(1<<OCIE0A);
+	TIFR0|=(1<<OCIE0A);
+	
+	sei();
+	while(1){
+	}
+}
+
+void LED_BLINK(){
+	PORTD=0x00;
+	_delay_ms(300);
+	PORTD=0xFF;
+}
+
+ISR(TIMER0_COMPA_vect){
+	OCR0A=0x4E;
+	TovVal++;
+
+	if(TovVal==200){
+		LED_BLINK();
+		TovVal=0;
+	}
+	sei();
+}
+-------------------------------------------------
+//buzz 스위치누를때 꺼지고 켜지고
+#include<avr/io.h>
+#define F_CPU 16000000UL
+#define FREQ(x)(unsigned int)(16000000/(2*8*(1+x)))
+#include<util/delay.h>
+#include<avr/interrupt.h>
+#define ON 1
+#define OFF 0
+int on_off=0;
+
+int main(){
+	cli();
+	DDRD=0xF3;
+	DDRB=0x0F;
+
+	PORTD=0x00;
+	PORTB=0x00;
+	EICRA=0x0A;
+	EIMSK=0x03;
+	EIFR|=0x03;
+	sei();
+
+	while(1){
+		if(on_off==ON){
+			play(2273);
+		}
+		else{
+			stop();
+		}
+	}
+}
+
+void play(unsigned int y){
+	unsigned int x;
+	DDRB|=0x02;
+	TCCR1A|=0x40;
+	TCCR1B|=0x1A;
+	ICR1=y;
+}
+
+void stop(){
+	TCCR1A=0x00;
+	TCCR1B=0x00;
+	TCNT1=0;
+	ICR1=0;
+	DDRB=~0x02;
+}
+
+ISR(INT0_vect){
+	cli();
+	on_off=ON;
+	EIFR|=0x01;
+	sei();
+}
+ISR(INT1_vect){
+	cli();
+	on_off=OFF;
+	EIFR|=0x02;
+	sei();
+}
+-------------------------------------------------
+//스위치 누를때마다 led랑 buzz소리 바뀜
+#include<avr/io.h>
+#define F_CPU 16000000UL
+#define FREQ(x)(unsigned int)(16000000/(2*8*(1+x)))
+#include<util/delay.h>
+#include<avr/interrupt.h>
+unsigned int note_freq[7]={2093,2349,2637,2794,3136,3520,3951};
+unsigned char led_array_PD[7]={0x10,0x30,0x70,0xF0,0xF0,0xF0,0xF0};
+unsigned char led_array_PB[7]={0x00,0x00,0x00,0x00,0x01,0x03,0x07};
+#define ON 1
+#define OFF 0
+int on_off=0;
+int note=0;
+void play(unsigned int y);
+
+int main(){
+	cli();
+	DDRD=0xF3;
+	DDRB=0x0F;
+	DDRC=0x0F;
+
+	PORTD=0x00;
+	PORTB=0x00;
+	EICRA=0x0A;
+	EIMSK=0x03;
+	EIFR|=0x03;
+	sei();
+
+	while(1){
+		_delay_ms(80);
+		play(note);
+	}
+}
+
+void play(unsigned int y){
+	unsigned int x;
+	DDRB|=0x02;
+	TCCR1A|=0x40;
+	TCCR1B|=0x1A;
+	y=FREQ(note_freq[y%7]);
+	ICR1=y;
+}
+
+ISR(INT0_vect){
+	cli();
+	_delay_ms(80);
+	if(++note>7){
+		note=6;
+	}
+	PORTD=~(led_array_PD[note])&0xF0;
+	PORTC=~(led_array_PB[note])&0x0F;
+	EIFR|=0x01;
+	sei();
+}
+ISR(INT1_vect){
+	cli();
+	_delay_ms(80);
+	if(--note<0){
+		note=0;
+	}
+	PORTD=~(led_array_PD[note]);
+	PORTC=~(led_array_PB[note]);
+	EIFR|=0x02;
+	sei();
+}
+

@@ -1,0 +1,161 @@
+//0~9까지 반복
+#include<avr/io.h>
+#define FOSC 16000000UL
+#define F_CPU 16000000UL
+#include<util/delay.h>
+
+void main(){
+	DDRD=0xFF;
+	while(1){
+		PORTD=0x3F;
+		_delay_ms(500);
+		PORTD=0x06;
+		_delay_ms(500);
+		PORTD=0x5B;
+		_delay_ms(500);
+		PORTD=0x4F;
+		_delay_ms(500);
+		PORTD=0x66;
+		_delay_ms(500);
+		PORTD=0x6D;
+		_delay_ms(500);
+		PORTD=0x7C;
+		_delay_ms(500);
+		PORTD=0x27;
+		_delay_ms(500);
+		PORTD=0x7F;
+		_delay_ms(500);
+		PORTD=0x67;
+		_delay_ms(500);
+	}
+}
+-------------------------------------------------
+//array를 이용한 0~9
+#include<avr/io.h>
+#define FOSC 16000000UL
+#define F_CPU 16000000UL
+#include<util/delay.h>
+
+unsigned char seg_tbl[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7C,0x27,0x7F,0x67};
+
+void main(){
+	DDRD=0xFF;
+	while(1){
+		for(int i=0;i<10;i++){
+			PORTD=seg_tbl[i];
+			_delay_ms(500);
+		}
+	}
+}
+-------------------------------------------------
+//segment 2개
+#include<avr/io.h>
+#define FOSC 16000000UL
+#define F_CPU 16000000UL
+#include<util/delay.h>
+
+#define SEG_PB_MASK 0x3F
+unsigned char seg_tbl[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7C,0x27,0x7F,0x67};
+unsigned char seg_tbl1[]={0x00,0x00,0x01,0x01,0x01,0x01,0x01,0x00,0x01,0x01};
+
+void main(){
+	DDRD=0xFF;
+	DDRB=0x3F;
+	DDRC=0x03;
+	while(1){
+		for(int i=0;i<10;i++){
+			PORTD=seg_tbl[i];
+			PORTB=SEG_PB_MASK & seg_tbl[i];
+			PORTC=seg_tbl1[i];
+			_delay_ms(500);
+		}
+	}
+}
+-------------------------------------------------
+//0~99까지 count
+#include<avr/io.h>
+#define FOSC 16000000UL
+#define F_CPU 16000000UL
+#include<util/delay.h>
+
+#define SEG_PB_MASK 0x3F
+unsigned char seg_tbl[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7C,0x27,0x7F,0x67};
+unsigned char seg_tbl1[]={0x00,0x00,0x01,0x01,0x01,0x01,0x01,0x00,0x01,0x01};
+
+void main(){
+	DDRD=0xFF;
+	DDRB=0x3F;
+	DDRC=0x03;
+	while(1){
+		for(int i=0;i<100;i++){
+			PORTD=seg_tbl[i/10];
+			PORTB=SEG_PB_MASK & seg_tbl[i%10];
+			PORTC=seg_tbl1[i%10];
+			_delay_ms(500);
+		}
+	}
+}
+-------------------------------------------------
+//스위치 누르면 LED 켜지게
+#include<avr/io.h>
+#define FOSC 16000000UL
+#define F_CPU 16000000UL
+#include<util/delay.h>
+
+void main(){
+	unsigned char in;
+	DDRD=0xF3;
+	DDRB=0xFF;
+	while(1){
+		in=(PIND & 0x0C);
+		PORTB=~in;
+	}
+}
+-------------------------------------------------
+//포트2개로 0~9까지 count
+#include<avr/io.h>
+#define FOSC 16000000UL
+#define F_CPU 16000000UL
+#include<util/delay.h>
+
+unsigned char seg_tbl[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7C,0x27,0x7F,0x67};
+
+void disp_seg(int value){
+	PORTD=seg_tbl[value] & 0xF0;
+	PORTB=seg_tbl[value] & 0x0F;
+}
+
+void main(){
+	unsigned char in;
+	DDRD=0xFF;
+	DDRB=0xFF;
+	while(1){
+		for(int i=0;i<10;i++){
+			disp_seg(i);	
+			_delay_ms(500);
+		}
+	}
+}
+-------------------------------------------------
+//스위치 이용하여 segment에 표시
+#include<avr/io.h>
+#define FOSC 16000000UL
+#define F_CPU 16000000UL
+#include<util/delay.h>
+
+unsigned char seg_tbl[]={0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7C,0x27,0x7F,0x67};
+
+void disp_seg(int value){
+	PORTD=seg_tbl[value] & 0xF0;
+	PORTB=seg_tbl[value] & 0x0F;
+}
+
+void main(){
+	unsigned char in;
+	DDRD=0xF3;
+	DDRB=0xFF;
+	while(1){
+		in=((PIND & 0x0C)>>2);
+		disp_seg(in);
+	}
+}
